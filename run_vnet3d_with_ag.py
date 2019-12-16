@@ -33,7 +33,7 @@ if __name__ == '__main__':
         raise Exception('[ERROR] optimizer = {}'.format(args.optimizer))
 
     # Cloud settings
-    cloud_dir = '/home/smchoi/gdrive/cloud/terra' # terra server
+    cloud_dir = '/home/smchoi/gdrive/cloud/smdl' # smdl server
 
     # Get data
     # [IDs] Get sample IDs from src_dir
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         patience=3, verbose=1, mode='auto', baseline=None, 
         restore_best_weights=True)
     time_tag = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-    tf_log_dir = '/home/smchoi/gdrive/cloud/terra/logs/vnet'
+    tf_log_dir = '/home/smchoi/gdrive/cloud/smdl/logs/vnet'
     if not os.path.exists(tf_log_dir):
         raise Exception("{} does not exist".format(tf_log_dir))
     log_dir = os.path.join(tf_log_dir, args.core_tag + '_' + time_tag)

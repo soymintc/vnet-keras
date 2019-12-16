@@ -136,9 +136,36 @@ def decoder1(x, skip, filters, kernel_size, padding, strides, data_format, group
         return upconv # N
 
 
+# Attention gate
+def attention_gate(inp, g, intra_filters):
+    with tf.variable_scope('attention_gate'):
+        data_format = 'channels_first'##@##
+        groups = 8 ##@##
+
+        # Gating signal processing
+        g = keras.layers.Conv3D(intra_filters, kernel_size=1, data_format=data_format)(g) # N/2
+        g = keras_contrib.layers.GroupNormalization(groups=groups, axis=1)(g) # N/2
+
+        # Skip signal processing: 
+        x = keras.layers.Conv3D(intra_filters, kernel_size=2, strides=2, padding='same', data_format=data_format)(inp) # N-->N/2
+        x = keras_contrib.layers.GroupNormalization(groups=groups, axis=1)(x) # N
+
+        # Add and proc
+        g_x = keras.layers.Add()([g, x]) # N/2
+        psi = keras.layers.Activation('relu')(g_x) # N/2
+        psi = keras.layers.Conv3D(1, kernel_size = 1, padding='same', data_format=data_format)(psi) # N/2
+        psi = keras_contrib.layers.GroupNormalization(groups=1, axis=1)(psi) # N/2
+        psi = keras.layers.Activation('sigmoid')(psi) # N/2
+        alpha = keras.layers.UpSampling3D(size=2, data_format=data_format)(psi) # N/2-->N
+
+        print('alpha.shape, x.shape', alpha.shape, inp.shape)
+
+        x_hat = keras.layers.Multiply()([inp, alpha])
+        return x_hat
+
+
 # Model
-# Model
-def VNet(n_in, n_out, image_shape, filters, kernel_size, padding, strides, data_format, groups):
+def VNet(n_in, n_out, image_shape, filters, kernel_size, padding, strides, data_format, groups, inter_filters):
     with tf.variable_scope('VNet'):
         input_dim = image_shape+(n_in,) if data_format=='channels_last' \
             else (n_in,)+image_shape
@@ -146,17 +173,22 @@ def VNet(n_in, n_out, image_shape, filters, kernel_size, padding, strides, data_
         inputs = keras.layers.Input(input_dim)
         print('inputs', inputs.shape)
 
-        (encoder1_addconv, encoder1_downconv) = encoder1(inputs, filters*2**0, kernel_size, padding, strides, data_format, groups)
-        (encoder2_addconv, encoder2_downconv) = encoder2(encoder1_downconv, filters*2**1, kernel_size, padding, strides, data_format, groups)
-        (encoder3_addconv, encoder3_downconv) = encoder3(encoder2_downconv, filters*2**2, kernel_size, padding, strides, data_format, groups)
-        (encoder4_addconv, encoder4_downconv) = encoder4(encoder3_downconv, filters*2**3, kernel_size, padding, strides, data_format, groups)
+        (encoder1_addconv, encoder1_downconv) = encoder1(inputs, filters*2**0, kernel_size, padding, strides, data_format, groups) # N, N/2
+        (encoder2_addconv, encoder2_downconv) = encoder2(encoder1_downconv, filters*2**1, kernel_size, padding, strides, data_format, groups) # N/2, N/4
+        (encoder3_addconv, encoder3_downconv) = encoder3(encoder2_downconv, filters*2**2, kernel_size, padding, strides, data_format, groups) # N/4, N/8
+        (encoder4_addconv, encoder4_downconv) = encoder4(encoder3_downconv, filters*2**3, kernel_size, padding, strides, data_format, groups) # N/8, N/16
 
-        bottom_addconv = bottom(encoder4_downconv, filters*2**4, kernel_size, padding, strides, data_format, groups)
+        bottom_addconv = bottom(encoder4_downconv, filters*2**4, kernel_size, padding, strides, data_format, groups) # N/16
 
-        decoder4_conv = decoder4(bottom_addconv, encoder4_addconv, filters*2**3, kernel_size, padding, strides, data_format, groups)
-        decoder3_conv = decoder3(decoder4_conv, encoder3_addconv, filters*2**2, kernel_size, padding, strides, data_format, groups)
-        decoder2_conv = decoder2(decoder3_conv, encoder2_addconv, filters*2**1, kernel_size, padding, strides, data_format, groups)
-        decoder1_conv = decoder1(decoder2_conv, encoder1_addconv, filters*2**0, kernel_size, padding, strides, data_format, groups)
+        print('encoder4_addconv, bottom_addconv', encoder4_addconv.shape, bottom_addconv.shape)
+        encoder4_ag = attention_gate(encoder4_addconv, bottom_addconv, inter_filters) # (N/8, N/16) --> N/8
+        decoder4_conv = decoder4(bottom_addconv, encoder4_ag, filters*2**3, kernel_size, padding, strides, data_format, groups) # N/8
+        encoder3_ag = attention_gate(encoder3_addconv, decoder4_conv, inter_filters) # (N/4, N/8) --> N/4
+        decoder3_conv = decoder3(decoder4_conv, encoder3_ag, filters*2**2, kernel_size, padding, strides, data_format, groups) # N/4
+        encoder2_ag = attention_gate(encoder2_addconv, decoder3_conv, inter_filters) # (N/2, N/4) --> N/2
+        decoder2_conv = decoder2(decoder3_conv, encoder2_ag, filters*2**1, kernel_size, padding, strides, data_format, groups) # N/2
+        encoder1_ag = attention_gate(encoder1_addconv, decoder2_conv, inter_filters) # (N, N/2) --> N
+        decoder1_conv = decoder1(decoder2_conv, encoder1_ag, filters*2**0, kernel_size, padding, strides, data_format, groups) # N
        
         with tf.variable_scope("output"):
             outputs = keras.layers.Conv3D(n_out,
