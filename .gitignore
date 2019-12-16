@@ -1,0 +1,7 @@
+*.pyc
+*.h5
+*.json
+*.nii.gz
+*.log
+logs
+__pycache__
