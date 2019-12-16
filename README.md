@@ -33,13 +33,13 @@ optional arguments:
   --optimizer OPTIMIZER, -op OPTIMIZER
   --print_summary_only
 ```
-Here, `--nii_dir` should have only nii.gz files within it.
+Here, `--nii_dir` should have only nii.gz files within it. <br>
 Each sample in the `--nii_dir` should have the following 5 suffices:
 - `_flair.nii.gz` 
 - `_t1.nii.gz`
 - `_t1ce.nii.gz`
 - `_t2.nii.gz`
-- `_seg.nii.gz` (label)
+- `_seg.nii.gz` (label)<br>
 Here, the label file with `_seg.nii.gz` should have only 0, 1, 2, 4 as its value, which corresponds to the BraTS 2018 brain tumor segmentation data [https://www.med.upenn.edu/sbia/brats2018/data.html].
 
 
