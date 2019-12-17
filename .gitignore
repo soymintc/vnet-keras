@@ -4,4 +4,5 @@
 *.nii.gz
 *.log
 logs
+orig_data
 __pycache__

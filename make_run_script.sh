@@ -1,4 +1,4 @@
-bs=1; is=64; lr=0.01; gs=8; fr=16; op=adam
+bs=1; is=128; lr=0.01; gs=8; fr=16; op=adam
 datadir=orig_data
 logdir=eval_log
 
