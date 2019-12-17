@@ -38,6 +38,8 @@ if __name__ == '__main__':
     cloud_dir = '{}/gdrive/cloud/{}'.format(home_dir, hostname)
     try:
         os.system('mkdir -p ' + cloud_dir)
+    except:
+        pass
 
     # Get data
     # [IDs] Get sample IDs from src_dir
@@ -100,9 +102,11 @@ if __name__ == '__main__':
         patience=15, verbose=1, mode='max', baseline=None, 
         restore_best_weights=True)
     time_tag = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-    tf_log_dir = '{}/{}/logs/vnet'.format(cloud_dir, hostname)
+    tf_log_dir = '{}/logs/vnet'.format(cloud_dir)
     try:
         os.system('mkdir -p ' + tf_log_dir)
+    except:
+        pass
     if not os.path.exists(tf_log_dir):
         raise Exception("{} does not exist".format(tf_log_dir))
     log_dir = os.path.join(tf_log_dir, args.core_tag + '_' + time_tag)
