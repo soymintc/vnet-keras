@@ -158,7 +158,6 @@ def attention_gate(inp, g, intra_filters):
         psi = keras.layers.Activation('sigmoid')(psi) # N/2
         alpha = keras.layers.UpSampling3D(size=2, data_format=data_format)(psi) # N/2-->N
 
-        print('alpha.shape, x.shape', alpha.shape, inp.shape)
 
         x_hat = keras.layers.Multiply()([inp, alpha])
         return x_hat
@@ -171,7 +170,6 @@ def VNet(n_in, n_out, image_shape, filters, kernel_size, padding, strides, data_
             else (n_in,)+image_shape
         
         inputs = keras.layers.Input(input_dim)
-        print('inputs', inputs.shape)
 
         (encoder1_addconv, encoder1_downconv) = encoder1(inputs, filters*2**0, kernel_size, padding, strides, data_format, groups) # N, N/2
         (encoder2_addconv, encoder2_downconv) = encoder2(encoder1_downconv, filters*2**1, kernel_size, padding, strides, data_format, groups) # N/2, N/4
@@ -180,7 +178,6 @@ def VNet(n_in, n_out, image_shape, filters, kernel_size, padding, strides, data_
 
         bottom_addconv = bottom(encoder4_downconv, filters*2**4, kernel_size, padding, strides, data_format, groups) # N/16
 
-        print('encoder4_addconv, bottom_addconv', encoder4_addconv.shape, bottom_addconv.shape)
         encoder4_ag = attention_gate(encoder4_addconv, bottom_addconv, inter_filters) # (N/8, N/16) --> N/8
         decoder4_conv = decoder4(bottom_addconv, encoder4_ag, filters*2**3, kernel_size, padding, strides, data_format, groups) # N/8
         encoder3_ag = attention_gate(encoder3_addconv, decoder4_conv, inter_filters) # (N/4, N/8) --> N/4

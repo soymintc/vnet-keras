@@ -6,9 +6,9 @@ if __name__ == '__main__':
     import time, re
     import tensorflow as tf
     from keras.optimizers import Adam, SGD
-    from utils import DataGenerator, dice_loss, dice_coefficient
+    from utils import DataGenerator, dice_loss, dice_coefficient, ModelAndWeightsCheckpoint
     from vnet3d import VNet
-    from keras.callbacks import ModelCheckpoint, LearningRateScheduler, Callback, TensorBoard, EarlyStopping
+    from keras.callbacks import LearningRateScheduler, Callback, TensorBoard, EarlyStopping
     
     parser = argparse.ArgumentParser(description="Script to run UNet3D")
     parser.add_argument('--core_tag', '-ct', required=True)
@@ -87,9 +87,10 @@ if __name__ == '__main__':
     existing_models = glob.glob(prefix + '_vl*.h5')
     existing_models.sort(key = lambda x: float(pattern.search(x).groups()[0][:-1]))
     
-    model_file = os.path.join(h5_dir, args.core_tag + '.h5')
-    checkpoint_cb = ModelCheckpoint(model_file, 
-        monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    model_weights = os.path.join(h5_dir, args.core_tag + '.h5')
+    model_architecture = os.path.join(h5_dir, args.core_tag + '.json')
+    checkpoint_cb = ModelAndWeightsCheckpoint(model_weights, model_architecture,
+        monitor='val_dice_coefficient', verbose=1, save_best_only=True, mode='min')
     lr_cb = LearningRateScheduler(lr_schedule_wrapper(args.learning_rate))
     earlystopping_cb = EarlyStopping(monitor='val_dice_coefficient', min_delta=0.001, 
         patience=3, verbose=1, mode='auto', baseline=None, 

@@ -3,6 +3,7 @@
 *.json
 *.nii.gz
 *.log
+*.bak
 logs
 orig_data
 __pycache__
