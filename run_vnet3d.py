@@ -6,9 +6,9 @@ if __name__ == '__main__':
     import time, re
     import tensorflow as tf
     from keras.optimizers import Adam, SGD
-    from utils import DataGenerator, dice_loss, dice_coefficient
+    from utils import DataGenerator, dice_loss, dice_coefficient, ModelAndWeightsCheckpoint
     from vnet3d import VNet
-    from keras.callbacks import ModelCheckpoint, LearningRateScheduler, Callback, TensorBoard, EarlyStopping
+    from keras.callbacks import LearningRateScheduler, Callback, TensorBoard, EarlyStopping
     
     parser = argparse.ArgumentParser(description="Script to run UNet3D")
     parser.add_argument('--core_tag', '-ct', required=True)
@@ -33,7 +33,11 @@ if __name__ == '__main__':
         raise Exception('[ERROR] optimizer = {}'.format(args.optimizer))
 
     # Cloud settings
-    cloud_dir = '/home/smchoi/gdrive/cloud/terra' # terra server
+    home_dir = os.path.expanduser("~")
+    hostname = os.uname()[1]
+    cloud_dir = '{}/gdrive/cloud/{}'.format(home_dir, hostname)
+    try:
+        os.system('mkdir -p ' + cloud_dir)
 
     # Get data
     # [IDs] Get sample IDs from src_dir
@@ -87,15 +91,18 @@ if __name__ == '__main__':
     existing_models = glob.glob(prefix + '_vl*.h5')
     existing_models.sort(key = lambda x: float(pattern.search(x).groups()[0][:-1]))
     
-    model_file = os.path.join(h5_dir, args.core_tag + '.h5')
-    checkpoint_cb = ModelCheckpoint(model_file, 
-        monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    model_weights = os.path.join(h5_dir, args.core_tag + '.h5')
+    model_architecture = os.path.join(h5_dir, args.core_tag + '.json')
+    checkpoint_cb = ModelAndWeightsCheckpoint(model_weights, model_architecture, 
+        monitor='val_dice_coefficient', verbose=1, save_best_only=True, mode='max')
     lr_cb = LearningRateScheduler(lr_schedule_wrapper(args.learning_rate))
     earlystopping_cb = EarlyStopping(monitor='val_dice_coefficient', min_delta=0.001, 
-        patience=3, verbose=1, mode='auto', baseline=None, 
+        patience=15, verbose=1, mode='max', baseline=None, 
         restore_best_weights=True)
     time_tag = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-    tf_log_dir = '/home/smchoi/gdrive/cloud/terra/logs/vnet'
+    tf_log_dir = '{}/{}/logs/vnet'.format(cloud_dir, hostname)
+    try:
+        os.system('mkdir -p ' + tf_log_dir)
     if not os.path.exists(tf_log_dir):
         raise Exception("{} does not exist".format(tf_log_dir))
     log_dir = os.path.join(tf_log_dir, args.core_tag + '_' + time_tag)
@@ -103,7 +110,7 @@ if __name__ == '__main__':
     
     callbacks_list = [checkpoint_cb, 
                       # lr_cb,
-                      # earlystopping_cb,
+                      earlystopping_cb,
                       tensorboard_cb]
     
     # Generate data
