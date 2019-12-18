@@ -292,7 +292,7 @@ class DataGenerator(keras.utils.Sequence):
         #self.image_size = image_size
         #self.image_shape = (self.image_size,)*3
         self.image_shape = image_shape
-        self.tids = [(name, False) for name in self.ids]
+        self.tids = [(name, True) for name in self.ids] # augment orig input as well
         
         self.rotation_range = rotation_range
         self.shift_range = shift_range

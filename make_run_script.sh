@@ -3,7 +3,7 @@ datadir=orig_data
 logdir=eval_log
 
 script=run_vnet3d_with_ag.py
-ct=AG_AugB${bs}_I${is}_L${lr}_G${gs}_fs${fr}_${op}
+ct=AG_Aug1_B${bs}_I${is}_L${lr}_G${gs}_fs${fr}_${op}
 
 cmd="python3 $script"
 cmd="$cmd -ct $ct"

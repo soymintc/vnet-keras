@@ -114,13 +114,13 @@ if __name__ == '__main__':
     
     callbacks_list = [checkpoint_cb, 
                       # lr_cb,
-                      earlystopping_cb,
+                      #earlystopping_cb,
                       tensorboard_cb]
     
     # Generate data
     image_shape = (args.image_size,)*3
     #FAIL: (144,144,144) #(160,160,144) #(192,192,144) #(208,208,144) #(240,240,144) 
-    gen_factor = 3
+    gen_factor = 1
     train_gen = DataGenerator(train_ids, src_dir, n_samples=n_train*gen_factor,
         rotation_range=0.4,
         batch_size=args.batch_size, image_shape=image_shape)
